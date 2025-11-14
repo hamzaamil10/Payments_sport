@@ -1,0 +1,16 @@
+{% extends "league/base.html" %}
+{% block content %}
+<h2>Matches</h2>
+<ul>
+  {% for m in matches %}
+    <li>
+      <a href="{% url 'league:match_detail' m.pk %}">{{ m.title }}</a>
+      – {{ m.date }} {{ m.time }} @ {{ m.location }}
+      – {{ m.confirmed_count }}/{{ m.max_players }} confirmed
+      {% if m.is_finished %} (Finished) {% endif %}
+    </li>
+  {% empty %}
+    <li>No matches yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "league/base.html" %}
+{% block content %}
+<h2>{{ match.title }}</h2>
+<p>{{ match.date }} {{ match.time }} @ {{ match.location }}</p>
+<p>Notes: {{ match.notes|default:"—" }}</p>
+<p>Capacity: {{ match.confirmed_count }}/{{ match.max_players }}</p>
+
+{% if participation %}
+  <p>Your status: <strong>{{ participation.get_status_display }}</strong></p>
+  <form method="post" action="{% url 'league:set_status' match.pk %}">
+    {% csrf_token %}
+    {{ status_form }}
+    <button type="submit">Update status</button>
+  </form>
+  <p><a href="{% url 'league:leave_match' match.pk %}">Leave match</a></p>
+{% else %}
+  <p><a href="{% url 'league:join_match' match.pk %}">Join match</a></p>
+{% endif %}
+
+<h3>Teams & Score</h3>
+<ul>
+  {% for t in teams %}
+    <li>{{ t.name }} – Score: {{ t.score }}</li>
+  {% empty %}
+    <li>No teams yet.</li>
+  {% endfor %}
+</ul>
+
+{% if match.created_by == request.user.profile %}
+  <h4>Assign Teams</h4>
+  {% for p in participants %}
+    <form method="post" action="{% url 'league:set_team' match.pk %}" style="display:flex;gap:8px;align-items:center">
+      {% csrf_token %}
+      <input type="hidden" name="player_participation_id" value="{{ p.id }}">
+      <span>{{ p.player }}</span>
+      <select name="team">
+        <option value="">—</option>
+        {% for t in teams %}
+          <option value="{{ t.id }}" {% if p.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Save</button>
+    </form>
+  {% endfor %}
+
+  <p><a href="{% url 'league:finalize_match' match.pk %}">Finalize match</a></p>
+{% endif %}
+
+<h3>Participants</h3>
+<table>
+  <tr><th>Player</th><th>Status</th><th>Team</th><th>Played</th><th>Goals</th><th>Assists</th><th>MVP</th><th>Paid</th></tr>
+  {% for p in participants %}
+  <tr>
+    <td>{{ p.player }}</td>
+    <td>{{ p.get_status_display }}</td>
+    <td>{{ p.team }}</td>
+    <td>{{ p.actually_played|yesno:"✔,✖" }}</td>
+    <td>{{ p.goals }}</td>
+    <td>{{ p.assists }}</td>
+    <td>{{ p.is_mvp|yesno:"🏅," }}</td>
+    <td>{{ p.has_paid|yesno:"✔,✖" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

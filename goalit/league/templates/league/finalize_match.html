@@ -1,0 +1,29 @@
+{% extends "league/base.html" %}
+{% block content %}
+<h2>Finalize: {{ match.title }}</h2>
+<form method="post">
+  {% csrf_token %}
+  <fieldset>
+    <legend>Team Scores</legend>
+    {% for field in form.visible_fields %}
+      {% if field.name.startswith:"score_" %}
+        <p>{{ field.label_tag }} {{ field }}</p>
+      {% endif %}
+    {% endfor %}
+  </fieldset>
+  <fieldset>
+    <legend>Attendance</legend>
+    <table>
+      <tr><th>Player</th><th>Played</th><th>No Show</th></tr>
+      {% for p in match.participations.all %}
+        <tr>
+          <td>{{ p.player }}</td>
+          <td>{{ form["played_"|add:p.id] }}</td>
+          <td>{{ form["no_show_"|add:p.id] }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </fieldset>
+  <button type="submit">Save & Mark Finished</button>
+</form>
+{% endblock %}
