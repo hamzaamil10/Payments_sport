@@ -1,24 +1,44 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
   <title>Football Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  {% load static %}
-  <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+  <link rel="stylesheet" href="{% static 'league/styles.css' %}">
 </head>
 <body>
-<header>
-  <h1><a href="{% url 'league:match_list' %}">Football Manager</a></h1>
-  {% if user.is_authenticated %}
-    <p>Logged in as {{ user.username }}</p>
-  {% endif %}
-  <hr/>
+
+<header class="nav">
+  <div class="row" style="align-items:center">
+    <div class="brand"><a href="{% url 'league:match_list' %}">⚽ Football Manager</a></div>
+  </div>
+
+  <div class="row" style="align-items:center">
+    {% if user.is_authenticated %}
+      <span class="pill">@{{ user.username }}</span>
+      <a class="btn" href="{% url 'logout' %}">Logout</a>
+    {% else %}
+      <a class="btn" href="{% url 'login' %}">Login</a>
+      <a class="btn btn-primary" href="{% url 'league:signup' %}">Sign up</a>
+    {% endif %}
+  </div>
 </header>
-<main>
-  {% for message in messages %}
-    <p>{{ message }}</p>
-  {% endfor %}
+
+<div class="container">
   {% block content %}{% endblock %}
-</main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=> t.classList.remove("show"), 2500);
+  }
+</script>
+
+{% block scripts %}{% endblock %}
 </body>
 </html>

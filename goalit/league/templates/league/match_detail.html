@@ -1,65 +1,170 @@
 {% extends "league/base.html" %}
 {% block content %}
-<h2>{{ match.title }}</h2>
-<p>{{ match.date }} {{ match.time }} @ {{ match.location }}</p>
-<p>Notes: {{ match.notes|default:"—" }}</p>
-<p>Capacity: {{ match.confirmed_count }}/{{ match.max_players }}</p>
 
-{% if participation %}
-  <p>Your status: <strong>{{ participation.get_status_display }}</strong></p>
-  <form method="post" action="{% url 'league:set_status' match.pk %}">
-    {% csrf_token %}
-    {{ status_form }}
-    <button type="submit">Update status</button>
-  </form>
-  <p><a href="{% url 'league:leave_match' match.pk %}">Leave match</a></p>
-{% else %}
-  <p><a href="{% url 'league:join_match' match.pk %}">Join match</a></p>
-{% endif %}
+<div class="grid">
+  <div class="card">
+    <div class="card-h">
+      <div>
+        <h2 style="margin:0">{{ match.title }}</h2>
+        <div class="muted">{{ match.date }} {{ match.time }} • {{ match.location }}</div>
+      </div>
 
-<h3>Teams & Score</h3>
-<ul>
-  {% for t in teams %}
-    <li>{{ t.name }} – Score: {{ t.score }}</li>
-  {% empty %}
-    <li>No teams yet.</li>
-  {% endfor %}
-</ul>
+      {% if match.final_score %}
+        <span class="badge badge-lock">Finalized 🔒</span>
+      {% else %}
+        <span class="badge badge-ok">Open ✅</span>
+      {% endif %}
+    </div>
 
-{% if match.created_by == request.user.profile %}
-  <h4>Assign Teams</h4>
-  {% for p in participants %}
-    <form method="post" action="{% url 'league:set_team' match.pk %}" style="display:flex;gap:8px;align-items:center">
-      {% csrf_token %}
-      <input type="hidden" name="player_participation_id" value="{{ p.id }}">
-      <span>{{ p.player }}</span>
-      <select name="team">
-        <option value="">—</option>
-        {% for t in teams %}
-          <option value="{{ t.id }}" {% if p.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit">Save</button>
-    </form>
-  {% endfor %}
+    <div class="card-b">
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <div class="muted">Capacity: <span id="cap">{{ match.confirmed_count }}</span>/{{ match.max_players }}</div>
 
-  <p><a href="{% url 'league:finalize_match' match.pk %}">Finalize match</a></p>
-{% endif %}
+        {% if not match.final_score %}
+        <div class="row">
+          <button class="btn btn-primary" id="btnJoin">Join</button>
+          <button class="btn btn-danger" id="btnLeave">Leave</button>
 
-<h3>Participants</h3>
-<table>
-  <tr><th>Player</th><th>Status</th><th>Team</th><th>Played</th><th>Goals</th><th>Assists</th><th>MVP</th><th>Paid</th></tr>
-  {% for p in participants %}
-  <tr>
-    <td>{{ p.player }}</td>
-    <td>{{ p.get_status_display }}</td>
-    <td>{{ p.team }}</td>
-    <td>{{ p.actually_played|yesno:"✔,✖" }}</td>
-    <td>{{ p.goals }}</td>
-    <td>{{ p.assists }}</td>
-    <td>{{ p.is_mvp|yesno:"🏅," }}</td>
-    <td>{{ p.has_paid|yesno:"✔,✖" }}</td>
-  </tr>
-  {% endfor %}
-</table>
+          <select id="statusSelect" class="btn" style="padding:10px 12px">
+            <option value="going">Going</option>
+            <option value="maybe">Maybe</option>
+            <option value="not_going">Not Going</option>
+          </select>
+          <button class="btn" id="btnSetStatus">Update Status</button>
+        </div>
+        {% endif %}
+      </div>
+
+      <hr style="border:0; border-top:1px solid #24304a; margin:16px 0">
+
+      <h3 style="margin:0 0 10px 0">Participants</h3>
+      <table class="table" id="participantsTable">
+        <thead>
+          <tr>
+            <th style="height: max-content;width: max-width:">Player</th><th>Status</th><th>Team</th><th>Goals</th><th>Assists</th><th>MVP</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><strong>Info</strong></div>
+    <div class="card-b">
+      <p class="muted" style="margin-top:0">{{ match.notes|default:"—" }}</p>
+      {% if match.created_by %}
+        <p class="muted">Organizer: {{ match.created_by }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const MATCH_ID = {{ match.id }};
+  const FINALIZED = {{ match.final_score|yesno:"true,false" }};
+  const API_BASE = "/api/matches/" + MATCH_ID + "/";
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie("csrftoken");
+
+  async function apiPost(url, body=null){
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(txt || res.statusText);
+    }
+    return res.status === 204 ? null : await res.json();
+  }
+
+  async function loadParticipants(){
+    const res = await fetch(API_BASE + "participants/");
+    if(!res.ok) return;
+    const data = await res.json();
+
+    const tbody = document.querySelector("#participantsTable tbody");
+    tbody.innerHTML = "";
+
+    let confirmed = 0;
+
+    data.forEach(p => {
+      const status = p.status;
+      if(status === "going") confirmed++;
+
+      const playerName = p.player?.nickname || p.player?.user || "—";
+      const teamName = p.team?.name || "—";
+      const mvp = p.is_mvp ? "🏅" : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${playerName}</td>
+        <td>${status}</td>
+        <td>${teamName}</td>
+        <td>${p.goals}</td>
+        <td>${p.assists}</td>
+        <td>${mvp}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const cap = document.getElementById("cap");
+    if(cap) cap.textContent = confirmed;
+  }
+
+  async function join(){
+    const r = await apiPost(API_BASE + "join/", {status: "going"});
+    toast(r.status === "waiting" ? "Match is full, you’re on waiting list." : "Joined!");
+    loadParticipants();
+  }
+
+  async function leave(){
+    await apiPost(API_BASE + "leave/");
+    toast("Left match");
+    loadParticipants();
+  }
+
+  async function setStatus(){
+    const s = document.getElementById("statusSelect").value;
+    const r = await apiPost(API_BASE + "join/", {status: s});
+    toast("Status updated: " + r.status);
+    loadParticipants();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadParticipants();
+
+    if(FINALIZED) return;
+
+    const btnJoin = document.getElementById("btnJoin");
+    const btnLeave = document.getElementById("btnLeave");
+    const btnSetStatus = document.getElementById("btnSetStatus");
+
+    if(btnJoin) btnJoin.addEventListener("click", () => join().catch(e => toast("Error: " + e.message)));
+    if(btnLeave) btnLeave.addEventListener("click", () => leave().catch(e => toast("Error: " + e.message)));
+    if(btnSetStatus) btnSetStatus.addEventListener("click", () => setStatus().catch(e => toast("Error: " + e.message)));
+  });
+</script>
 {% endblock %}

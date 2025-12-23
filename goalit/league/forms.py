@@ -1,5 +1,6 @@
 from django import forms
 from .models import MatchParticipation, Team
+from django.contrib.auth.models import User
 
 class ParticipationStatusForm(forms.ModelForm):
     class Meta:
@@ -16,13 +17,22 @@ class SetTeamForm(forms.Form):
         self.fields["team"].queryset = match.teams.all()
 
 class FinalizeMatchForm(forms.Form):
-    # Minimal: set team scores & mark who actually played
-    def __init__(self, *args, **kwargs):
-        match = kwargs.pop("match")
-        super().__init__(*args, **kwargs)
-        for team in match.teams.all():
-            self.fields[f"score_{team.id}"] = forms.IntegerField(min_value=0, initial=team.score, required=True)
+    pass
+    
 
-        for p in match.participations.all():
-            self.fields[f"played_{p.id}"] = forms.BooleanField(required=False, initial=p.actually_played)
-            self.fields[f"no_show_{p.id}"] = forms.BooleanField(required=False, initial=p.no_show)
+class SignUpForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput)
+    password_confirm = forms.CharField(label="Confirm Password", widget=forms.PasswordInput)
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pw = cleaned_data.get("password")
+        pw2 = cleaned_data.get("password_confirm")
+
+        if pw != pw2:
+            raise forms.ValidationError("Passwords do not match.")
+        return cleaned_data

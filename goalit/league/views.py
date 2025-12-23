@@ -5,7 +5,12 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView
 from .models import Match, MatchParticipation, Team, PlayerProfil
-from .forms import ParticipationStatusForm, SetTeamForm, FinalizeMatchForm
+from .forms import ParticipationStatusForm, SetTeamForm, FinalizeMatchForm, SignUpForm
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from django.contrib.auth.models import User
+from django.contrib import messages
+
 
 class MatchListView(LoginRequiredMixin, ListView):
     model = Match
@@ -39,6 +44,9 @@ def match_detail(request, pk):
 @login_required
 def join_match(request, pk):
     match = get_object_or_404(Match, pk=pk)
+    if match.final_score:
+        messages.error(request, "This match has been finalized and you can't join or change it anymore.")
+        return redirect("league:match_detail", pk=pk)
     profile = request.user.profile
 
     part, created = MatchParticipation.objects.get_or_create(match=match, player=profile)
@@ -56,6 +64,9 @@ def join_match(request, pk):
 @login_required
 def leave_match(request, pk):
     match = get_object_or_404(Match, pk=pk)
+    if match.final_score:
+        messages.error(request, "This match has been finalized and you can't join or change it anymore.")
+        return redirect("league:match_detail", pk=pk)
     profile = request.user.profile
     MatchParticipation.objects.filter(match=match, player=profile).delete()
     messages.success(request, "You’ve left this match.")
@@ -64,6 +75,9 @@ def leave_match(request, pk):
 @login_required
 def set_status(request, pk):
     match = get_object_or_404(Match, pk=pk)
+    if match.final_score:
+        messages.error(request, "This match has been finalized and you can't join or change it anymore.")
+        return redirect("league:match_detail", pk=pk)
     profile = request.user.profile
     part = get_object_or_404(MatchParticipation, match=match, player=profile)
 
@@ -88,6 +102,9 @@ def set_status(request, pk):
 @login_required
 def set_team(request, pk):
     match = get_object_or_404(Match, pk=pk)
+    if match.final_score:
+        messages.error(request, "This match has been finalized and you can't join or change it anymore.")
+        return redirect("league:match_detail", pk=pk)
     # Simple permission: only creator can assign teams
     if match.created_by != request.user.profile:
         messages.error(request, "Only the match organizer can assign teams.")
@@ -108,29 +125,77 @@ def set_team(request, pk):
 @transaction.atomic
 def finalize_match(request, pk):
     match = get_object_or_404(Match, pk=pk)
+    if match.final_score:
+        messages.error(request, "This match has been finalized and you can't join or change it anymore.")
+        return redirect("league:match_detail", pk=pk)
+
+    # Only organizer can finalize
     if match.created_by != request.user.profile:
         messages.error(request, "Only the match organizer can finalize the match.")
         return redirect("league:match_detail", pk=pk)
 
     if request.method == "POST":
-        form = FinalizeMatchForm(request.POST, match=match)
+        form = FinalizeMatchForm(request.POST)
         if form.is_valid():
-            # Save team scores
+            # 1) Save team scores
             for team in match.teams.all():
-                team.score = form.cleaned_data[f"score_{team.id}"]
-                team.save()
+                field_name = f"score_{team.id}"
+                value = request.POST.get(field_name)
+                if value is not None:
+                    try:
+                        team.score = int(value)
+                    except (TypeError, ValueError):
+                        pass  # ignore invalid input, keep old score
+                    team.save()
 
-            # Update attendance (played/no_show)
+            # 2) Save attendance (played / no_show)
             for p in match.participations.all():
-                p.actually_played = form.cleaned_data.get(f"played_{p.id}", False)
-                p.no_show = form.cleaned_data.get(f"no_show_{p.id}", False)
+                played_field = f"played_{p.id}"
+                no_show_field = f"no_show_{p.id}"
+
+                # Checkbox => present as "on" if checked
+                p.actually_played = request.POST.get(played_field) == "on"
+                p.no_show = request.POST.get(no_show_field) == "on"
                 p.save()
 
-            match.is_finished = True
+            # 3) Mark match as finalized
+            match.final_score = True  # you used 'final_score' in your model
             match.save()
+
             messages.success(request, "Match finalized.")
             return redirect("league:match_detail", pk=pk)
     else:
-        form = FinalizeMatchForm(match=match)
+        form = FinalizeMatchForm()
 
-    return render(request, "league/finalize_match.html", {"match": match, "form": form})
+    return render(
+        request,
+        "league/finalize_match.html",
+        {
+            "match": match,
+            "form": form,
+        },
+    )
+
+
+def signup(request):
+    # Restrict if user is logged in AND is staff/admin
+    if request.user.is_authenticated and request.user.is_staff:
+        messages.error(request, "Admins cannot use this signup page.")
+        return redirect("admin:index")
+
+    if request.method == "POST":
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data["password"])
+            user.save()
+
+            # Auto-create PlayerProfil
+            #PlayerProfil.objects.create(user=user)
+
+            messages.success(request, "Account created successfully. You can now log in.")
+            return redirect("login")
+    else:
+        form = SignUpForm()
+
+    return render(request, "league/signup.html", {"form": form})

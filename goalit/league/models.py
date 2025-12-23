@@ -34,6 +34,9 @@ class Match (models.Model):
     @property
     def confirmed_count(self):
         return self.participants.count()
+    @property
+    def status_label(self):
+        return "Finalized" if self.final_score else "Open"
 
 
 class Team(models.Model):

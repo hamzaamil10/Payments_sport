@@ -9,6 +9,11 @@
       – {{ m.confirmed_count }}/{{ m.max_players }} confirmed
       {% if m.is_finished %} (Finished) {% endif %}
     </li>
+    {% if m.final_score %}
+    <span class="badge badge-lock">Finalized 🔒</span>
+    {% else %}
+    <span class="badge badge-ok">Open ✅</span>
+    {% endif %}
   {% empty %}
     <li>No matches yet.</li>
   {% endfor %}

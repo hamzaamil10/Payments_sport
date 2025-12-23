@@ -1,29 +1,59 @@
 {% extends "league/base.html" %}
 {% block content %}
 <h2>Finalize: {{ match.title }}</h2>
+
 <form method="post">
   {% csrf_token %}
+
+  <!-- Team scores -->
   <fieldset>
     <legend>Team Scores</legend>
-    {% for field in form.visible_fields %}
-      {% if field.name.startswith:"score_" %}
-        <p>{{ field.label_tag }} {{ field }}</p>
-      {% endif %}
-    {% endfor %}
-  </fieldset>
-  <fieldset>
-    <legend>Attendance</legend>
     <table>
-      <tr><th>Player</th><th>Played</th><th>No Show</th></tr>
-      {% for p in match.participations.all %}
+      <tr>
+        <th>Team</th>
+        <th>Score</th>
+      </tr>
+      {% for team in match.teams.all %}
         <tr>
-          <td>{{ p.player }}</td>
-          <td>{{ form["played_"|add:p.id] }}</td>
-          <td>{{ form["no_show_"|add:p.id] }}</td>
+          <td>{{ team.name }}</td>
+          <td>
+            <input type="number"
+                   name="score_{{ team.id }}"
+                   value="{{ team.score }}"
+                   min="0">
+          </td>
         </tr>
       {% endfor %}
     </table>
   </fieldset>
+
+  <!-- Attendance -->
+  <fieldset>
+    <legend>Attendance</legend>
+    <table>
+      <tr>
+        <th>Player</th>
+        <th>Played</th>
+        <th>No Show</th>
+      </tr>
+      {% for p in match.participations.all %}
+        <tr>
+          <td>{{ p.player }}</td>
+          <td>
+            <input type="checkbox"
+                   name="played_{{ p.id }}"
+                   {% if p.actually_played %}checked{% endif %}>
+          </td>
+          <td>
+            <input type="checkbox"
+                   name="no_show_{{ p.id }}"
+                   {% if p.no_show %}checked{% endif %}>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </fieldset>
+
   <button type="submit">Save & Mark Finished</button>
 </form>
 {% endblock %}
