@@ -17,7 +17,6 @@ class MatchListView(LoginRequiredMixin, ListView):
     template_name = "league/match_list.html"
     context_object_name = "matches"
     paginate_by = 20
-
     def get_queryset(self):
         return Match.objects.order_by("-date", "-time")
 

@@ -1,4 +1,10 @@
 {% extends "league/base.html" %}
+{% load static %}
+
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'league/css/signup.css' %}">
+{% endblock %}
 
 {% block content %}
 <h2>Create an Account</h2>
@@ -10,5 +16,5 @@
     <button type="submit">Sign Up</button>
 </form>
 
-<p>Already have an account? <a href="{% url 'login' %}">Login here</a>.</p>
+<p>Already have an account? <a  style="color: aquamarine;" href="{% url 'login' %}">Login here</a>.</p>
 {% endblock %}

@@ -1,0 +1,31 @@
+.auth-wrap{
+  min-height:calc(100vh - 80px);
+  display:grid;
+  place-items:center;
+}
+
+.auth-card{
+  width:min(900px,100%);
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+}
+
+@media(max-width:900px){
+  .auth-card{ grid-template-columns:1fr; }
+  .auth-side{ display:none; }
+}
+
+.auth-side{
+  padding:24px;
+  background:
+    radial-gradient(600px 400px at 20% 20%, rgba(134,239,172,.25), transparent 60%);
+}
+
+.hero{
+  font-size:34px;
+  font-weight:900;
+}
+.hero span{ color:var(--accent); }
+
+.form-grid{ display:grid; gap:14px; }
+

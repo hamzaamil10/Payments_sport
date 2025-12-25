@@ -1,10 +1,16 @@
 {% extends "league/base.html" %}
+{% load static %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'league/css/match_list.css' %}">
+{% endblock %}
+
 {% block content %}
 <h2>Matches</h2>
 <ul>
   {% for m in matches %}
     <li>
-      <a href="{% url 'league:match_detail' m.pk %}">{{ m.title }}</a>
+      <a style="color: aquamarine;"       href="{% url 'league:match_detail' m.pk %}">{{ m.title }}</a>
       – {{ m.date }} {{ m.time }} @ {{ m.location }}
       – {{ m.confirmed_count }}/{{ m.max_players }} confirmed
       {% if m.is_finished %} (Finished) {% endif %}

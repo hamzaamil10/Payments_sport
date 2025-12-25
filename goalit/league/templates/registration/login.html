@@ -1,15 +1,89 @@
-<!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
-<body>
-  <h1>Login</h1>
-  {% if form.errors %}<p>Invalid credentials.</p>{% endif %}
-  <form method="post" action="{% url 'login' %}">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Log in</button>
-    <input type="hidden" name="next" value="{{ next }}">
-  </form>
-  <p>Don't have an account? <a href="{% url 'league:signup' %}">Sign Up here</a>.</p>
-</body>
-</html>
+{% extends "league/base.html" %}
+{% load static %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'league/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="card auth-card pop">
+    <div class="auth-side">
+      <div class="kicker">Football Match Manager</div>
+      <div class="hero">Track games, Rank players <span>Have fun.</span></div>
+      <p class="muted" style="margin:0">
+        Log in to join matches, update your availability, and see the leaderboard.
+      </p>
+      <ul class="bullets">
+        <li>Join / leave matches in one click</li>
+        <li>Balanced teams + final score</li>
+        <li>Points & rankings</li>
+      </ul>
+    </div>
+
+    <div class="auth-main">
+      <div class="card-h" style="border-bottom:1px solid var(--line); margin:1px 1px 14px; padding:16px 18px;color: rgb(6, 240, 158);text-align: left; padding-left: 0%;">
+        <strong>Welcome back</strong>
+      </div>
+
+      {% if form.errors %}
+        <div class="err" style="margin-bottom:12px;">
+          Invalid username or password.
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'login' %}" class="form-grid">
+        {% csrf_token %}
+
+        <div class="field">
+          <label for="id_username">Username</label>
+          <input class="input" id="id_username" name="username" type="text" autocomplete="username" required>
+        </div>
+
+        <div class="field">
+          <label for="id_password">Password</label>
+          <input class="input" id="id_password" name="password" type="password" autocomplete="current-password" required>
+          <button class="icon-btn" type="button" id="togglePw" aria-label="Show password">👁️</button> 
+        </div>
+
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <div class="auth-actions">
+          <button class="btn btn-primary" type="submit">Log in</button>
+        </div>
+        <div class="">
+            <a  style="color: aquamarine;"    href="{% url 'league:signup' %}">Sign up</a>
+        </div>
+        <div class="">
+            <a  style="color: aquamarine;"         href="{% url 'password_reset' %}">Forgot password?</a>
+        </div>
+      </form>
+
+      
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Focus username on load
+  document.addEventListener("DOMContentLoaded", () => {
+    const u = document.getElementById("id_username");
+    if (u) u.focus();
+
+    const btn = document.getElementById("togglePw");
+    const pw = document.getElementById("id_password");
+
+    if (btn && pw) {
+      btn.addEventListener("click", () => {
+        const isPw = pw.type === "password";
+        pw.type = isPw ? "text" : "password";
+        btn.textContent = isPw ? "🙈" : "👁️";
+        btn.setAttribute("aria-label", isPw ? "Hide password" : "Show password");
+      });
+    }
+  });
+</script>
+{% endblock %}
+

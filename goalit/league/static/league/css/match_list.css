@@ -1,0 +1,11 @@
+.match-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:18px;
+}
+
+.match-card{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}

@@ -1,4 +1,9 @@
 {% extends "league/base.html" %}
+{% load static %}
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'league/css/match_detail.css' %}">
+{% endblock %}
+
 {% block content %}
 
 <div class="grid">
@@ -41,7 +46,7 @@
       <table class="table" id="participantsTable">
         <thead>
           <tr>
-            <th style="height: max-content;width: max-width:">Player</th><th>Status</th><th>Team</th><th>Goals</th><th>Assists</th><th>MVP</th>
+            <th>Player</th><th>Status</th><th>Team</th><th>Goals</th><th>Assists</th><th>MVP</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -64,7 +69,7 @@
 
 {% block scripts %}
 <script>
-  const MATCH_ID = {{ match.id }};
+  const MATCH_ID =  "{{match.id}}"";
   const FINALIZED = {{ match.final_score|yesno:"true,false" }};
   const API_BASE = "/api/matches/" + MATCH_ID + "/";
 
