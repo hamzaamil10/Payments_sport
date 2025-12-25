@@ -18,7 +18,7 @@ class MatchListView(LoginRequiredMixin, ListView):
     context_object_name = "matches"
     paginate_by = 20
     def get_queryset(self):
-        return Match.objects.order_by("-date", "-time")
+        return Match.objects.order_by("-date", "-time").prefetch_related("participations__player__user")
 
 @login_required
 def match_detail(request, pk):

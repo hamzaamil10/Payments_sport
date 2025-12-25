@@ -1,75 +1,114 @@
 {% extends "league/base.html" %}
 {% load static %}
+
 {% block page_css %}
 <link rel="stylesheet" href="{% static 'league/css/match_detail.css' %}">
 {% endblock %}
 
 {% block content %}
+<div class="match-shell">
 
-<div class="grid">
   <div class="card">
-    <div class="card-h">
-      <div>
-        <h2 style="margin:0">{{ match.title }}</h2>
-        <div class="muted">{{ match.date }} {{ match.time }} • {{ match.location }}</div>
-      </div>
-
-      {% if match.final_score %}
-        <span class="badge badge-lock">Finalized 🔒</span>
-      {% else %}
-        <span class="badge badge-ok">Open ✅</span>
-      {% endif %}
-    </div>
-
     <div class="card-b">
-      <div class="row" style="justify-content:space-between; align-items:center">
-        <div class="muted">Capacity: <span id="cap">{{ match.confirmed_count }}</span>/{{ match.max_players }}</div>
 
-        {% if not match.final_score %}
-        <div class="row">
-          <button class="btn btn-primary" id="btnJoin">Join</button>
-          <button class="btn btn-danger" id="btnLeave">Leave</button>
+      <div class="match-hero">
+        <div>
+          <h2>{{ match.title }}</h2>
 
-          <select id="statusSelect" class="btn" style="padding:10px 12px">
-            <option value="going">Going</option>
-            <option value="maybe">Maybe</option>
-            <option value="not_going">Not Going</option>
-          </select>
-          <button class="btn" id="btnSetStatus">Update Status</button>
+          <div class="match-sub">
+            <span class="kv">📅 {{ match.date }} • {{ match.time }}</span>
+            <span class="kv">📍 {{ match.location }}</span>
+
+            {% if match.final_score %}
+              <span class="badge badge-lock">Finalized 🔒</span>
+            {% else %}
+              <span class="badge badge-ok">Open ✅</span>
+            {% endif %}
+          </div>
+
+          <div class="score-strip">
+            {% for t in match.teams.all %}
+              <span class="score-pill">
+                {{ t.name }} <span class="score-num">{{ t.score }}</span>
+              </span>
+            {% empty %}
+              <span class="muted">No teams created yet.</span>
+            {% endfor %}
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="kv">👥 Capacity: <strong id="cap">{{ match.confirmed_count }}</strong> / {{ match.max_players }}</div>
+
+          <div class="names">
+            {% for p in participants %}
+              {% if p.status == "going" %}
+                <span class="chip">{{ p.player.nickname|default:p.player.user.username }}</span>
+              {% endif %}
+            {% endfor %}
+          </div>
         </div>
-        {% endif %}
+
+        <!-- Actions (hidden if finalized) -->
+        <div>
+          {% if not match.final_score %}
+            <div class="row" style="justify-content:flex-end;">
+              <button class="btn btn-primary" id="btnJoin">Join</button>
+              <button class="btn btn-danger" id="btnLeave">Leave</button>
+            </div>
+
+            <div class="row" style="justify-content:flex-end; margin-top:10px;">
+              <select id="statusSelect" class="btn" style="padding:10px 12px">
+                <option value="going">Going</option>
+                <option value="maybe">Maybe</option>
+                <option value="not_going">Not Going</option>
+              </select>
+              <button class="btn" id="btnSetStatus">Update</button>
+            </div>
+          {% else %}
+            <div class="kv">🔒 Read-only match</div>
+          {% endif %}
+        </div>
       </div>
 
-      <hr style="border:0; border-top:1px solid #24304a; margin:16px 0">
+      <div class="divider"></div>
 
-      <h3 style="margin:0 0 10px 0">Participants</h3>
-      <table class="table" id="participantsTable">
-        <thead>
-          <tr>
-            <th>Player</th><th>Status</th><th>Team</th><th>Goals</th><th>Assists</th><th>MVP</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <h3 style="margin:0;">Participants</h3>
+      <div class="table-wrap">
+        <table class="table" id="participantsTable">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Status</th>
+              <th>Team</th>
+              <th class="t-left">Goals</th>
+              <th class="t-left">Assists</th>
+              <th class="t-center">MVP</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
     </div>
   </div>
 
   <div class="card">
-    <div class="card-h"><strong>Info</strong></div>
     <div class="card-b">
-      <p class="muted" style="margin-top:0">{{ match.notes|default:"—" }}</p>
+      <h3 style="margin:0;">Info</h3>
+      <div class="info-line">{{ match.notes|default:"—" }}</div>
       {% if match.created_by %}
-        <p class="muted">Organizer: {{ match.created_by }}</p>
+        <div class="info-line">Organizer: <strong>{{ match.created_by }}</strong></div>
       {% endif %}
     </div>
   </div>
-</div>
 
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  const MATCH_ID =  "{{match.id}}"";
+  const MATCH_ID = {{ match.id }};
   const FINALIZED = {{ match.final_score|yesno:"true,false" }};
   const API_BASE = "/api/matches/" + MATCH_ID + "/";
 
@@ -92,10 +131,7 @@
   async function apiPost(url, body=null){
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrftoken
-      },
+      headers: {"Content-Type":"application/json","X-CSRFToken": csrftoken},
       body: body ? JSON.stringify(body) : null
     });
     if(!res.ok){
@@ -119,18 +155,18 @@
       const status = p.status;
       if(status === "going") confirmed++;
 
-      const playerName = p.player?.nickname || p.player?.user || "—";
+      const playerName = p.player?.nickname || p.player?.username || p.player?.user || "—";
       const teamName = p.team?.name || "—";
-      const mvp = p.is_mvp ? "🏅" : "";
+      const mvp = p.is_mvp ? `<span class="mvp">🏅</span>` : "";
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${playerName}</td>
         <td>${status}</td>
         <td>${teamName}</td>
-        <td>${p.goals}</td>
-        <td>${p.assists}</td>
-        <td>${mvp}</td>
+        <td class="t-right">${p.goals}</td>
+        <td class="t-right">${p.assists}</td>
+        <td class="t-center">${mvp}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -139,37 +175,21 @@
     if(cap) cap.textContent = confirmed;
   }
 
-  async function join(){
-    const r = await apiPost(API_BASE + "join/", {status: "going"});
-    toast(r.status === "waiting" ? "Match is full, you’re on waiting list." : "Joined!");
-    loadParticipants();
-  }
-
-  async function leave(){
-    await apiPost(API_BASE + "leave/");
-    toast("Left match");
-    loadParticipants();
-  }
-
+  async function join(){ await apiPost(API_BASE+"join/", {status:"going"}); loadParticipants(); }
+  async function leave(){ await apiPost(API_BASE+"leave/"); loadParticipants(); }
   async function setStatus(){
     const s = document.getElementById("statusSelect").value;
-    const r = await apiPost(API_BASE + "join/", {status: s});
-    toast("Status updated: " + r.status);
+    await apiPost(API_BASE+"join/", {status:s});
     loadParticipants();
   }
 
   document.addEventListener("DOMContentLoaded", () => {
     loadParticipants();
-
     if(FINALIZED) return;
 
-    const btnJoin = document.getElementById("btnJoin");
-    const btnLeave = document.getElementById("btnLeave");
-    const btnSetStatus = document.getElementById("btnSetStatus");
-
-    if(btnJoin) btnJoin.addEventListener("click", () => join().catch(e => toast("Error: " + e.message)));
-    if(btnLeave) btnLeave.addEventListener("click", () => leave().catch(e => toast("Error: " + e.message)));
-    if(btnSetStatus) btnSetStatus.addEventListener("click", () => setStatus().catch(e => toast("Error: " + e.message)));
+    document.getElementById("btnJoin")?.addEventListener("click", () => join());
+    document.getElementById("btnLeave")?.addEventListener("click", () => leave());
+    document.getElementById("btnSetStatus")?.addEventListener("click", () => setStatus());
   });
 </script>
 {% endblock %}

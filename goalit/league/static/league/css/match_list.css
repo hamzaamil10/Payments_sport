@@ -1,11 +1,115 @@
+.list-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom: 14px;
+}
+.page-title{
+  font-size: 30px;
+  margin: 0 0 6px 0;
+}
+
 .match-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-  gap:18px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
 
 .match-card{
+  display:block;
+  padding: 16px;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+.match-card:hover{
+  transform: translateY(-2px);
+  border-color: rgba(134,239,172,.35);
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+}
+
+.match-card-top{
   display:flex;
-  flex-direction:column;
-  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.match-title{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--title);
+}
+.match-title .icon{
+  width: 34px;
+  height: 34px;
+  display:grid;
+  place-items:center;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.05);
+}
+
+.match-meta{
+  display:grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.meta-item{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  color: var(--text);
+}
+.meta-ic{
+  width: 22px;
+  text-align:center;
+  opacity: .95;
+}
+
+.match-people{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.confirmed{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.names{
+  margin-top: 10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+}
+
+.chip{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.small{ font-size: 12px; }
+
+.open-arrow{
+  font-size: 22px;
+  opacity: .7;
+}
+.match-card:hover .open-arrow{
+  opacity: 1;
 }

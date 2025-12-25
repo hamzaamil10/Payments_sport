@@ -6,22 +6,93 @@
 {% endblock %}
 
 {% block content %}
-<h2>Matches</h2>
-<ul>
+<div class="list-head">
+  <div>
+    <h2 class="page-title">Matches</h2>
+    <div class="muted">Upcoming and past matches — click a card to open details.</div>
+  </div>
+</div>
+
+<div class="match-grid">
   {% for m in matches %}
-    <li>
-      <a style="color: aquamarine;"       href="{% url 'league:match_detail' m.pk %}">{{ m.title }}</a>
-      – {{ m.date }} {{ m.time }} @ {{ m.location }}
-      – {{ m.confirmed_count }}/{{ m.max_players }} confirmed
-      {% if m.is_finished %} (Finished) {% endif %}
-    </li>
-    {% if m.final_score %}
-    <span class="badge badge-lock">Finalized 🔒</span>
-    {% else %}
-    <span class="badge badge-ok">Open ✅</span>
-    {% endif %}
-  {% empty %}
-    <li>No matches yet.</li>
+    <a class="match-card card" href="{% url 'league:match_detail' m.pk %}">
+      <div class="match-card-top">
+        <div class="match-title">
+          <span class="icon">⚽</span>
+          <span>{{ m.title }}</span>
+        </div>
+
+        {% if m.final_score %}
+          <span style="color: beige;"   class="badge badge-lock">Finalized 🔒</span>
+        {% else %}
+          <span  style="color: rgb(88, 185, 19);"   class="badge badge-ok">Open ✅</span>
+        {% endif %}
+      </div>
+
+      <div class="match-meta">
+        <div class="meta-item">
+          <span class="meta-ic">📅</span>
+          <span>{{ m.date }} • {{ m.time }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-ic">📍</span>
+          <span>{{ m.location }}</span>
+        </div>
+        {% if m.price_per_player %}
+        <div class="meta-item">
+          <span class="meta-ic">💰</span>
+          <span>{{ m.price_per_player }} / player</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="match-people">
+        <div class="people-left">
+          <div class="confirmed">
+            <span class="meta-ic">👥</span>
+            <strong style="color: aliceblue;">{{ m.confirmed_count }}</strong>
+            <span style="color: aquamarine;"   class="muted">/ {{ m.max_players }} confirmed</span>
+          </div>
+
+          {# show first 6 confirmed names #}
+          <div class="names">
+            {% with confirmed=m.participations.all %}
+              {% for p in confirmed %}
+                {% if p.status == "going" %}
+                  <span class="chip">
+                    {{ p.player.nickname|default:p.player.user.username }}
+                  </span>
+                {% endif %}
+                <!-- keep this comment here maybe need it after -->
+                <!--<div class="names">
+                    {% for p in m.participations.all %}
+                        {% if p.status == "going" and forloop.counter <= 6 %}
+                        <span class="chip">{{ p.player.nickname|default:p.player.user.username }}</span>
+                        {% endif %}
   {% endfor %}
-</ul>
+</div>-->
+              {% endfor %}
+            {% endwith %}
+          </div>
+
+          {# If too many, show +X #}
+          {% with total=m.confirmed_count %}
+            {% if total > 6 %}
+              <div class="muted small">+{{ total|add:"-6" }} more</div>
+            {% endif %}
+          {% endwith %}
+        </div>
+
+        <div class="people-right">
+          <span class="open-arrow">→</span>
+        </div>
+      </div>
+    </a>
+  {% empty %}
+    <div class="card card-b">
+      <h3>No matches yet</h3>
+      <p class="muted">Create your first match from the admin panel.</p>
+    </div>
+  {% endfor %}
+</div>
 {% endblock %}

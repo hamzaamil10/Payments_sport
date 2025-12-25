@@ -1,16 +1,138 @@
-.match-header{
+/* Header layout */
+.match-shell{
+  display:grid;
+  gap: 16px;
+}
+
+.match-hero{
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  gap:12px;
+  align-items:flex-start;
+  gap: 16px;
 }
 
-.actions{
+.match-hero h2{
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: .2px;
+}
+
+.match-sub{
+  margin-top: 6px;
+  color: var(--muted);
   display:flex;
-  gap:10px;
-  flex-wrap:wrap;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.participants{
-  margin-top:20px;
+.kv{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  font-size: 12px;
+}
+
+.divider{
+  height:1px;
+  background: var(--line);
+  margin: 14px 0;
+}
+
+/* Score strip */
+.score-strip{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.score-pill{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  font-weight: 650;
+}
+.score-num{
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(134,239,172,.35);
+  background: rgba(134,239,172,.12);
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* Confirmed chips */
+.names{
+  margin-top: 10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+}
+.chip{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Participants table */
+.table-wrap{
+  margin-top: 10px;
+  overflow:auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.03);
+}
+
+.table{
+  min-width: 720px;
+}
+
+.table th{
+  position: sticky;
+  top: 0;
+  background: rgba(15,23,42,.95);
+  backdrop-filter: blur(8px);
+}
+
+.table td, .table th{
+  padding: 12px 14px;
+}
+
+.table tr:hover td{
+  background: rgba(255,255,255,.04);
+}
+
+.t-right{ text-align:right; }
+.t-center{ text-align:center; }
+
+.mvp{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(134,239,172,.35);
+  background: rgba(134,239,172,.12);
+}
+
+/* Info card */
+.info-line{
+  color: var(--muted);
+  margin-top: 8px;
 }
