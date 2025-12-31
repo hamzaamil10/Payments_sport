@@ -1,5 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,6 +14,8 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 
 
+
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class MatchListView(LoginRequiredMixin, ListView):
     model = Match
     template_name = "league/match_list.html"

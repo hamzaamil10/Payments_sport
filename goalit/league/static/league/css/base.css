@@ -13,6 +13,8 @@
 
   --radius:16px;
   --shadow:0 10px 30px rgba(0,0,0,.25);
+  --card-bg-top: rgba(255,255,255,0.18);
+  --card-bg-bottom: rgba(255,255,255,0.10);
 }
 
 /* ========== RESET ========== */

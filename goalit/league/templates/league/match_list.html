@@ -11,9 +11,12 @@
     <h2 class="page-title">Matches</h2>
     <div class="muted">Upcoming and past matches — click a card to open details.</div>
   </div>
+  <div class="row">
+    <button class="btn btn-primary" id="openCreateMatch" type="button">+ Create Match</button>
+  </div>
 </div>
 
-<div class="match-grid">
+<div class="match-grid" id="matchGrid">
   {% for m in matches %}
     <a class="match-card card" href="{% url 'league:match_detail' m.pk %}">
       <div class="match-card-top">
@@ -94,5 +97,229 @@
       <p class="muted">Create your first match from the admin panel.</p>
     </div>
   {% endfor %}
+  
 </div>
+<div class="modal-backdrop" id="createMatchModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="createMatchTitle">
+    <div class="modal-h">
+      <div class="modal-title" id="createMatchTitle">🗓️ Create Match</div>
+      <button class="x-btn" id="closeCreateMatch" type="button">✕</button>
+    </div>
+
+    <div class="modal-b">
+      <form id="createMatchForm">
+        <div class="modal-grid">
+          <div class="field">
+            <label for="cm_title">Title</label>
+            <input class="input" id="cm_title" name="title" placeholder="FRIENDLY MATCH" />
+            <div class="help">Optional — default is FRIENDLY MATCH.</div>
+          </div>
+
+          <div class="field">
+            <label for="cm_location">Location</label>
+            <input class="input" id="cm_location" name="location" placeholder="Arena ville verte" required />
+          </div>
+
+          <div class="field">
+            <label for="cm_date">Date</label>
+            <input class="input" id="cm_date" name="date" type="date" required />
+          </div>
+
+          <div class="field">
+            <label for="cm_time">Time</label>
+            <input class="input" id="cm_time" name="time" type="time" required />
+          </div>
+
+          <div class="field">
+            <label for="cm_max">Max players</label>
+            <input class="input" id="cm_max" name="max_players" type="number" min="2" max="40" value="14" required />
+          </div>
+
+          <div class="field">
+            <label for="cm_price">Price per player</label>
+            <input class="input" id="cm_price" name="price_per_player" type="number" min="0" step="0.01" placeholder="0.00" />
+            <div class="help">Optional</div>
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1;">
+            <label for="cm_notes">Notes</label>
+            <textarea class="input" id="cm_notes" name="notes" rows="3" placeholder="Be on time, bring water..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn" type="button" id="cancelCreateMatch">Cancel</button>
+          <button class="btn btn-primary" type="submit" id="submitCreateMatch">Create</button>
+        </div>
+
+        <div class="help" id="createMatchError" style="display:none; margin-top:10px; color:#fecaca;"></div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("createMatchModal");
+  const openBtn = document.getElementById("openCreateMatch");
+  const closeBtn = document.getElementById("closeCreateMatch");
+  const cancelBtn = document.getElementById("cancelCreateMatch");
+  const form = document.getElementById("createMatchForm");
+  const errBox = document.getElementById("createMatchError");
+  const submitBtn = document.getElementById("submitCreateMatch");
+  const grid = document.getElementById("matchGrid");
+
+  // Debug logs (open browser console to see them)
+  console.log("CreateMatch init:", { modal, openBtn, closeBtn, cancelBtn, form, grid });
+
+  if (!modal || !openBtn || !form || !grid) {
+    console.error("Missing required element(s). Check IDs in template.");
+    return;
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let c of cookies) {
+        c = c.trim();
+        if (c.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(c.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie("csrftoken");
+  console.log("CSRF:", csrftoken);
+
+  function openModal(){
+    if (errBox) { errBox.style.display = "none"; errBox.textContent = ""; }
+    modal.classList.add("show");
+    document.getElementById("cm_location")?.focus();
+  }
+
+  function closeModal(){
+    modal.classList.remove("show");
+  }
+
+  openBtn.addEventListener("click", openModal);
+  closeBtn?.addEventListener("click", closeModal);
+  cancelBtn?.addEventListener("click", closeModal);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("show")) closeModal();
+  });
+
+  function escapeHtml(s){
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function renderMatchCard(m){
+    const statusBadge = m.final_score
+      ? `<span class="badge badge-lock">Finalized 🔒</span>`
+      : `<span class="badge badge-ok">Open ✅</span>`;
+
+    const confirmed = (m.confirmed_count ?? 0);
+
+    const detailUrl = `/${m.id}/`; // change to `/match/${m.id}/` if your detail URL uses /match/<id>/
+
+    return `
+      <a class="match-card card" href="${detailUrl}">
+        <div class="match-card-top">
+          <div class="match-title">
+            <span class="icon">⚽</span>
+            <span>${escapeHtml(m.title)}</span>
+          </div>
+          ${statusBadge}
+        </div>
+
+        <div class="match-meta">
+          <div class="meta-item"><span class="meta-ic">📅</span><span>${escapeHtml(m.date)} • ${escapeHtml(m.time)}</span></div>
+          <div class="meta-item"><span class="meta-ic">📍</span><span>${escapeHtml(m.location)}</span></div>
+          ${m.price_per_player ? `<div class="meta-item"><span class="meta-ic">💰</span><span>${escapeHtml(m.price_per_player)} / player</span></div>` : ""}
+        </div>
+
+        <div class="match-people">
+          <div class="people-left">
+            <div class="confirmed">
+              <span class="meta-ic">👥</span>
+              <strong>${confirmed}</strong>
+              <span class="muted">/ ${escapeHtml(m.max_players)} confirmed</span>
+            </div>
+            <div class="names"><span class="muted small">New match — join to appear here</span></div>
+          </div>
+          <div class="people-right"><span class="open-arrow">→</span></div>
+        </div>
+      </a>
+    `;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      title: document.getElementById("cm_title")?.value.trim() || "FRIENDLY MATCH",
+      location: document.getElementById("cm_location")?.value.trim(),
+      date: document.getElementById("cm_date")?.value,
+      time: document.getElementById("cm_time")?.value,
+      max_players: parseInt(document.getElementById("cm_max")?.value || "14", 10),
+      notes: document.getElementById("cm_notes")?.value.trim(),
+    };
+    const price = document.getElementById("cm_price")?.value.trim();
+    if (price) payload.price_per_player = price;
+
+    console.log("Submitting match payload:", payload);
+
+    submitBtn && (submitBtn.disabled = true);
+    submitBtn && (submitBtn.textContent = "Creating...");
+
+    try{
+      const res = await fetch("/api/matches/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if(!res.ok){
+        const txt = await res.text();
+        throw new Error(txt || "Failed to create match");
+      }
+
+      const match = await res.json();
+      console.log("Created match:", match);
+
+      closeModal();
+      grid.insertAdjacentHTML("afterbegin", renderMatchCard(match));
+      form.reset();
+      document.getElementById("cm_max").value = 14;
+
+    }catch(err){
+      console.error("Create match error:", err);
+      if (errBox){
+        errBox.style.display = "block";
+        errBox.textContent = "Error: " + err.message;
+      }
+    }finally{
+      submitBtn && (submitBtn.disabled = false);
+      submitBtn && (submitBtn.textContent = "Create");
+    }
+  });
+});
+</script>
 {% endblock %}

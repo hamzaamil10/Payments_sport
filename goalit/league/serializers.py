@@ -40,6 +40,8 @@ class MatchSerializer(serializers.ModelSerializer):
 
     def get_confirmed_count(self, obj):
         return obj.confirmed_count
+   
+
 
 
 class MatchParticipationSerializer(serializers.ModelSerializer):
