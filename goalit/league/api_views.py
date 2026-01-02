@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import random
 from rest_framework.permissions import IsAuthenticated
 from .models import Match, MatchParticipation
 from .serializers import MatchSerializer, MatchParticipationSerializer
@@ -14,6 +15,51 @@ class MatchViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # the logged-in user becomes created_by
         serializer.save(created_by=self.request.user.profile)
+    
+    @action(detail=True, methods=["post"], url_path="randomize-teams")
+    def randomize_teams(self, request, pk=None):
+        match = self.get_object()
+
+        if match.final_score:
+            return Response(
+                {"detail": "Match is finalized."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not match.created_by or match.created_by != request.user.profile:
+            return Response(
+                {"detail": "Only the organizer can randomize teams."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        teams = list(match.teams.all())
+        if len(teams) < 2:
+            return Response(
+                {"detail": "Create at least two teams first."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        players = list(
+            match.participations
+            .filter(status="going")
+            .select_related("player")
+        )
+
+        if not players:
+            return Response(
+                {"detail": "No confirmed players to assign."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        random.shuffle(players)
+
+        team_a, team_b = teams[0], teams[1]
+
+        for i, p in enumerate(players):
+            p.team = team_a if i % 2 == 0 else team_b
+            p.save(update_fields=["team"])
+
+        return Response({"detail": "Teams randomized successfully."})
 
     @action(detail=True, methods=["get"])
     def participants(self, request, pk=None):
@@ -69,3 +115,5 @@ class MatchViewSet(viewsets.ModelViewSet):
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response({"detail": "You were not registered for this match."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    

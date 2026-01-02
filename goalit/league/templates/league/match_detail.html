@@ -7,7 +7,6 @@
 
 {% block content %}
 <div class="match-shell">
-
   <div class="card">
     <div class="card-b">
 
@@ -51,6 +50,9 @@
 
         <!-- Actions (hidden if finalized) -->
         <div>
+          {% if not match.final_score and match.created_by == request.user.profile and match.teams.count >= 2 %}
+            <button class="btn" id="btnRandomizeTeams">🎲 Randomize Teams</button>
+          {% endif %}
           {% if not match.final_score %}
             <div class="row" style="justify-content:flex-end;">
               <button class="btn btn-primary" id="btnJoin">Join</button>
@@ -84,6 +86,7 @@
               <th class="t-left">Goals</th>
               <th class="t-left">Assists</th>
               <th class="t-center">MVP</th>
+              <th>Paid</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -128,6 +131,17 @@
   }
   const csrftoken = getCookie("csrftoken");
 
+  async function randomizeTeams(){
+    await apiPost(API_BASE + "randomize-teams/");
+    toast("Teams randomized 🎲");
+    loadParticipants();
+  }
+  
+  document.getElementById("btnRandomizeTeams")?.addEventListener("click", () => {
+    randomizeTeams().catch(e => toast("Error: " + e.message));
+  });
+  
+  
   async function apiPost(url, body=null){
     const res = await fetch(url, {
       method: "POST",
